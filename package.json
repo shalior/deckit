@@ -28,7 +28,7 @@
 	"types": "./dist/index.d.ts",
 	"type": "module",
 	"bin": {
-		"deckit": "bin/shali.js"
+		"deckit": "bin/deckit.js"
 	},
 	"exports": {
 		".": {
