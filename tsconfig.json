@@ -1,0 +1,18 @@
+{
+	"extends": "./.svelte-kit/tsconfig.json",
+    "exclude": [
+      "templates/controller.base.ts",
+    ],
+	"compilerOptions": {
+		"experimentalDecorators": true,
+		"allowJs": false,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"sourceMap": true,
+		"strict": true,
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext"
+	}
+}
