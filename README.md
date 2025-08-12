@@ -2,27 +2,90 @@
 
 A TypeScript-first toolkit providing decorators and utilities to streamline SvelteKit development with enhanced type safety and developer experience.
 
-## Features
+Deckit provides powerful decorators for authentication, authorization, data validation, and utilities to reduce boilerplate code while maintaining type safety and improving developer experience in SvelteKit applications.
 
-### 🔐 Check Decorator
-- **Method-level** and **class-level** custom checks (authentication, authorization, etc.)
-- Highly customizable check functions
-- Create reusable check decorators for authentication, permissions, roles, etc.
-- Automatic protection for all public methods (when used as class decorator)
-- Preserves method context and arguments
+## Before vs After
 
-### ✅ Data Validation Decorator
-- **Zod-powered** form data validation
-- Automatic FormData parsing and transformation
-- Type-safe validated data in `event.locals.validated`
-- Custom failure callbacks
-- Built-in 422 error responses for validation failures
+**Typical SvelteKit Action (verbose & repetitive):**
 
-### 🛠️ CLI Generator
-- **Scaffold controllers** with a single command
-- Built-in templates with best practices
-- Customizable class names and file paths
-- Automatic directory creation
+```typescript
+// src/routes/users/[id]/+page.server.ts
+import { error, fail } from '@sveltejs/kit';
+import { z } from 'zod';
+
+const updateUserSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email()
+});
+
+export const actions = {
+  update: async ({ request, locals, params }) => {
+    // 1. Check authentication
+    if (!locals.user) {
+      throw error(401, 'Unauthorized');
+    }
+
+    // 2. Check permissions
+    if (locals.user.role !== 'admin' && locals.user.id !== params.id) {
+      throw error(403, 'Forbidden');
+    }
+
+    // 3. Check if resource exists
+    const user = await getUserById(params.id);
+    if (!user) {
+      throw error(404, 'User not found');
+    }
+
+    // 4. Validate form data
+    const formData = await request.formData();
+    const result = updateUserSchema.safeParse(Object.fromEntries(formData));
+    
+    if (!result.success) {
+      return fail(422, {
+        errors: result.error.flatten().fieldErrors
+      });
+    }
+
+    // 5. Finally, the actual business logic
+    return await updateUser(params.id, result.data);
+  }
+};
+```
+
+**With Deckit Decorators (clean & declarative):**
+
+```typescript
+// src/routes/users/[id]/UserController.ts
+import { Check, Validate } from 'deckit';
+import { z } from 'zod';
+
+// move you app specific decorators to lib folder to reuse them
+const Auth = Check((e) => e?.locals.user ? true : error(401));
+const OwnerOrAdmin = Check((e) => 
+  e?.locals.user?.role === 'admin' || e?.locals.user?.id === e?.params.id ? true : error(403)
+);
+const UserExists = Check(async (e) => {
+  const user = await getUserById(e?.params.id);
+  return user ? true : error(404, 'User not found');
+});
+
+const updateUserSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email()
+});
+
+export class UserController {
+  @Auth
+  @OwnerOrAdmin
+  @UserExists
+  @Validate(updateUserSchema)
+  async update(event: RequestEvent) {
+    // All checks passed, validated data available
+    const { name, email } = event.locals.validated;
+    return await updateUser(event.params.id, { name, email });
+  }
+}
+```
 
 ## Installation
 
@@ -32,9 +95,19 @@ npm install deckit
 pnpm add deckit
 ```
 
-**Peer Dependencies:**
-- `svelte ^5.0.0`
-- `zod ^3.0.0`
+
+#### TypeScript Configuration
+
+Ensure your `tsconfig.json` includes:
+
+```json
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "strict": true
+  }
+}
+```
 
 ## Quick Start
 
@@ -132,8 +205,8 @@ const Auth = Check((event) => {
 });
 
 class SecureController {
-  @Auth
-  @ZodValidate(adminSchema)
+  @Auth // runs first
+  @ZodValidate(adminSchema) // runs after
   async sensitiveOperation(event: ValidatedEvent) {
     // Both authenticated AND validated
     return { data: event.locals.validated };
@@ -158,58 +231,6 @@ npx deckit make:controller src/controllers/UserController.ts --force
 # Auto-detect name from path
 npx deckit make:controller api/products
 # Creates src/routes/api/products.ts with ProductsController class
-```
-
-### Generated Controller Template
-
-The CLI generates a controller with the following template:
-
-```typescript
-import { z } from 'zod';
-import type { RequestEvent } from './$types';
-import { Check, ZodValidate } from 'deckit';
-import { error } from '@sveltejs/kit';
-
-const schema = z.object({
-    name: z.string().min(2),
-    email: z.string().email(),
-});
-
-type ValidatedRequestEvent = RequestEvent & {
-    locals: RequestEvent['locals'] & {
-        validated: z.infer<typeof schema>;
-    }
-};
-
-// Create reusable check decorators
-const Auth = Check((event) => {
-    if (event?.locals.user) {
-        return true;
-    }
-    error(401, 'Unauthorized');
-});
-
-const RequireAdmin = Check((event) => {
-    if (event?.locals.user?.role === 'admin') {
-        return true;
-    }
-    error(403, 'Admin access required');
-});
-
-export default class EditController {
-    @Auth
-    @ZodValidate(schema)
-    async invoke(event: ValidatedRequestEvent) {
-        console.log('User:', event.locals.user);
-        console.log('Validation successful:', event.locals.validated);
-        return { success: true };
-    }
-    
-    @RequireAdmin
-    async adminAction(event: RequestEvent) {
-        return { message: 'Admin-only action completed' };
-    }
-}
 ```
 
 ## API Reference
@@ -267,7 +288,6 @@ Creates a decorator that validates FormData against a Zod schema.
 - Parses FormData from `event.request`
 - Sets `event.locals.validated` to parsed data (success) or `null` (failure)
 - Returns `fail(422, { message: 'Validation failed.', errors: [...] })` on validation failure
-- Logs validation errors to console
 - Calls the optional `onFailure` callback with the event and error details
 
 **FormData Handling:**
@@ -289,19 +309,6 @@ formData.append('tags', 'tag2');
 
 const obj = formDataToObject(formData);
 // Result: { name: 'John', tags: ['tag1', 'tag2'] }
-```
-
-## TypeScript Configuration
-
-Ensure your `tsconfig.json` includes:
-
-```json
-{
-  "compilerOptions": {
-    "experimentalDecorators": true,
-    "strict": true
-  }
-}
 ```
 
 ## Error Handling
@@ -341,30 +348,38 @@ class PremiumController {
 }
 ```
 
-### Complex Validation Schema
+### Ensure resource exists
 
-```typescript
-const complexSchema = z.object({
-  user: z.object({
-    name: z.string().min(2),
-    age: z.string().transform(val => parseInt(val))
-  }),
-  preferences: z.array(z.string()).optional(),
-  isActive: z.string().transform(val => val === 'true')
-});
+```ts
+export const EnsureResourceExists = (paramName: string, service: {find: (id: string) => Promise<object | null>}) => {
+    return Check(async (e) => {
+        const resourceId = e.params[paramName];
+
+        if (!resourceId) {
+            error(404);
+        }
+
+        const resource = await service.find(resourceId);
+
+        if (!resource) {
+            error(404);
+        }
+
+        e.locals.resource = resource;
+
+        return true;
+    });
+};
+
+
+// usage:
+class TestController {
+	@EnsureResourceExists('id', new ResourceService())
+    async ...
+}
+
 ```
 
-### Custom Validation Failure Handling
-
-```typescript
-@ZodValidate(schema, (event, error) => {
-  // Log to monitoring service
-  logger.error('Validation failed', { 
-    path: event.url.pathname, 
-    errors: error.errors 
-  });
-})
-```
 
 ## Contributing
 
