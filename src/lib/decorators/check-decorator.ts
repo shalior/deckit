@@ -1,17 +1,17 @@
 import { type RequestEvent } from '@sveltejs/kit';
 
-type AuthCheckFunction<T = unknown> = (e?: RequestEvent) => true | void | T;
+type CheckFunction<T = unknown> = (e?: RequestEvent) => true | void | T | Promise<true | void | T>;
 
-export function Check<T = unknown>(check?: AuthCheckFunction<T>): ClassDecorator & MethodDecorator {
+export function Check<T = unknown>(check?: CheckFunction<T>): ClassDecorator & MethodDecorator {
 	return function (target: any, propertyKey?: string | symbol, descriptor?: PropertyDescriptor) {
 		// Method decorator - applied to a specific method
 		if (propertyKey && descriptor) {
 			const original = descriptor.value;
 
-			descriptor.value = function (...args: unknown[]) {
+			descriptor.value = async function (...args: unknown[]) {
 				// Execute auth check if provided
 				if (check) {
-					const checkResult = check(args[0] as RequestEvent);
+					const checkResult = await check(args[0] as RequestEvent);
 					if (checkResult !== true) {
 						return checkResult;
 					}
@@ -41,10 +41,10 @@ export function Check<T = unknown>(check?: AuthCheckFunction<T>): ClassDecorator
 				if (methodDescriptor && typeof methodDescriptor.value === 'function') {
 					const originalMethod = methodDescriptor.value;
 
-					methodDescriptor.value = function (...args: unknown[]) {
+					methodDescriptor.value = async function (...args: unknown[]) {
 						// Execute auth check if provided
 						if (check) {
-							const checkResult = check(args[0] as RequestEvent);
+							const checkResult = await check(args[0] as RequestEvent);
 							if (checkResult !== true) {
 								return checkResult; // Handle failure consistently
 							}

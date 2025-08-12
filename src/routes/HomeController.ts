@@ -5,7 +5,7 @@ import { ZodValidate } from '$lib/decorators/validation-decorator.js';
 import { error } from '@sveltejs/kit';
 
 const schema = z.object({
-    demo: z.string().min(2).max(5)
+    test: z.string().min(2).max(5)
 })
 
 
@@ -21,11 +21,17 @@ const Auth = Check((e) => {
 	}
 
 	error(401);
+});
+
+const AsyncAuth = Check(async (e) => {
+	const a = await Promise.resolve(2);
+	return !!a;
 })
 
 export default class HomeController {
-    @ZodValidate(schema)
+		@AsyncAuth
 		@Auth
+    @ZodValidate(schema)
     async invoke(event:  ValidatedRequestEvent) {
         console.log('Validation successful:', event.locals.validated)
 
