@@ -32,8 +32,6 @@ export function ZodValidate(schema: ZodSchema, onFailure?: (event: RequestEvent,
 
             event.locals.validated = result.success ? result.data : null;
 
-            console.log('Validation result:', result.error);
-
             if (!result.success) {
                 if (onFailure) {
                     onFailure(event, result.error);

@@ -23,7 +23,6 @@ export default class EditController {
 		})
     @ZodValidate(schema)
     async invoke(event: ValidatedRequestEvent) {
-        console.log('User:', event.locals.user);
         console.log('Validation successful:', event.locals.validated);
         return { success: true };
     }
