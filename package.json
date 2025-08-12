@@ -38,6 +38,7 @@
 	},
 	"peerDependencies": {
 		"svelte": "^5.0.0",
+        "@sveltejs/kit": "^2.22.0",
 		"zod": "^3.0.0"
 	},
 	"devDependencies": {
@@ -66,10 +67,5 @@
 	},
 	"keywords": [
 		"svelte"
-	],
-	"pnpm": {
-		"onlyBuiltDependencies": [
-			"esbuild"
-		]
-	}
+	]
 }
