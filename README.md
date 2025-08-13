@@ -56,16 +56,16 @@ export const actions = {
 
 ```typescript
 // src/routes/users/[id]/UserController.ts
-import { Check, Validate } from 'deckit';
+import { Check, ZodValidate } from 'deckit';
 import { z } from 'zod';
 
 // move you app specific decorators to lib folder to reuse them
-const Auth = Check((e) => e?.locals.user ? true : error(401));
+const Auth = Check((e) => e.locals.user ? true : error(401));
 const OwnerOrAdmin = Check((e) => 
-  e?.locals.user?.role === 'admin' || e?.locals.user?.id === e?.params.id ? true : error(403)
+  e.locals.user?.role === 'admin' || e.locals.user?.id === e.params.id ? true : error(403)
 );
 const UserExists = Check(async (e) => {
-  const user = await getUserById(e?.params.id);
+  const user = await getUserById(e.params.id);
   return user ? true : error(404, 'User not found');
 });
 
@@ -78,7 +78,7 @@ export class UserController {
   @Auth
   @OwnerOrAdmin
   @UserExists
-  @Validate(updateUserSchema)
+  @ZodValidate(updateUserSchema)
   async update(event: RequestEvent) {
     // All checks passed, validated data available
     const { name, email } = event.locals.validated;
@@ -104,7 +104,7 @@ Ensure your `tsconfig.json` includes:
 {
   "compilerOptions": {
     "experimentalDecorators": true,
-    "strict": true
+    ...
   }
 }
 ```
@@ -121,7 +121,7 @@ import { error } from '@sveltejs/kit';
 
 // Create a reusable Auth decorator
 const Auth = Check((event) => {
-  if (event?.locals.user) {
+  if (event.locals.user) {
     return true;
   }
   error(401, 'Unauthorized');
@@ -129,7 +129,7 @@ const Auth = Check((event) => {
 
 // Create a role-based permission decorator
 const RequireAdmin = Check((event) => {
-  if (event?.locals.user?.role === 'admin') {
+  if (event.locals.user?.role === 'admin') {
     return true;
   }
   error(403, 'Admin access required');
@@ -138,7 +138,7 @@ const RequireAdmin = Check((event) => {
 // Method-level authentication
 class UserController {
   @Auth
-  async getProfile(event: RequestEvent) {
+  async profile(event: RequestEvent) {
     return { user: event.locals.user };
   }
   
@@ -200,7 +200,7 @@ class UserController {
 import { Check, ZodValidate } from 'deckit';
 
 const Auth = Check((event) => {
-  if (event?.locals.user) return true;
+  if (event.locals.user) return true;
   error(401, 'Unauthorized');
 });
 
@@ -218,29 +218,23 @@ class SecureController {
 
 Generate controller scaffolds using the built-in CLI:
 
+use `--force` to overwrite existing files
+use `--name MyName` to set the class's name
+
+
 ```bash
-# Generate controller in specific file
-npx deckit make:controller src/routes/api/users/+server.ts --name UserController
-
-# Generate controller in directory (creates UserController.ts)
-npx deckit make:controller src/controllers --name UserController
-
-# Overwrite existing files
-npx deckit make:controller src/controllers/UserController.ts --force
-
-# Auto-detect name from path
-npx deckit make:controller api/products
-# Creates src/routes/api/products.ts with ProductsController class
+# creates a controller as src/routes/dashboard/users/UserController.ts using template.
+npx deckit make:controller dashboard/users/UserController --force
 ```
 
 ## API Reference
 
-### `Check(checkFn?: (event?: RequestEvent) => true | void | any)`
+### `Check(checkFn?: (event: RequestEvent) => true | void | any)`
 
 Creates a decorator that can be applied to methods or classes to perform custom checks.
 
 **Parameters:**
-- `checkFn` (optional): Function to execute for the check. Should return `true` for success, or any other value to halt execution and return that value.
+- `checkFn` (optional): Function to execute for the check. Should return `true` for success, or any other value to halt execution and return that value as if it's returns from main method.
 
 **Usage:**
 - As **method decorator**: Protects individual methods
@@ -258,20 +252,20 @@ Creates a decorator that can be applied to methods or classes to perform custom 
 ```typescript
 // Authentication
 const Auth = Check((event) => {
-  if (event?.locals.user) return true;
+  if (event.locals.user) return true;
   error(401);
 });
 
 // Role-based access
 const RequireRole = (role: string) => Check((event) => {
-  if (event?.locals.user?.role === role) return true;
+  if (event.locals.user?.role === role) return true;
   error(403, `${role} access required`);
 });
 
 // Custom business logic
 const OwnerOnly = Check((event) => {
-  const userId = event?.params?.id;
-  if (event?.locals.user?.id === userId) return true;
+  const userId = event.params?.id;
+  if (event.locals.user?.id === userId) return true;
   error(403, 'Resource owner access required');
 });
 ```
@@ -330,12 +324,12 @@ const obj = formDataToObject(formData);
 
 ```typescript
 const Auth = Check((event) => {
-  if (event?.locals.user) return true;
+  if (event.locals.user) return true;
   error(401);
 });
 
 const RequirePlan = (plan: string) => Check((event) => {
-  if (event?.locals.user?.plan === plan) return true;
+  if (event.locals.user?.plan === plan) return true;
   error(402, `${plan} plan required`);
 });
 

@@ -1,6 +1,6 @@
 import { type RequestEvent } from '@sveltejs/kit';
 
-type CheckFunction<T = unknown> = (e?: RequestEvent) => true | void | T | Promise<true | void | T>;
+type CheckFunction<T = unknown> = (e: RequestEvent) => true | void | T | Promise<true | void | T>;
 
 export function Check<T = unknown>(check?: CheckFunction<T>): ClassDecorator & MethodDecorator {
 	return function (target: any, propertyKey?: string | symbol, descriptor?: PropertyDescriptor) {

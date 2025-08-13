@@ -16,14 +16,14 @@ type ValidatedRequestEvent = RequestEvent & {
 }
 
 const Auth = Check((e) => {
-	if (e?.locals.user) {
+	if (e.locals.user) {
 		return true;
 	}
 
 	error(401);
 });
 
-const AsyncAuth = Check(async (e) => {
+const AsyncAuth = Check(async () => {
 	const a = await Promise.resolve(2);
 	return !!a;
 })

@@ -16,7 +16,7 @@ type ValidatedRequestEvent = RequestEvent & {
 
 export default class EditController {
     @Check((event) => {
-			if (event?.locals.user) {
+			if (event.locals.user) {
 				return true;
 			}
 			error(401, 'Unauthorized');
