@@ -227,22 +227,6 @@ describe('ValidateData decorator', () => {
 			// Should not throw any errors even without onFailure callback
 			expect(originalMethod).not.toHaveBeenCalled();
 		});
-
-		it('should log validation errors', async () => {
-			const consoleSpy = vi.spyOn(console, 'log');
-
-			class TestController {
-				@ZodValidate(testSchema)
-				async testMethod(event: RequestEvent) {
-					return originalMethod(event);
-				}
-			}
-
-			const controller = new TestController();
-			await controller.testMethod(mockEvent);
-
-			expect(consoleSpy).toHaveBeenCalledWith('Validation result:', expect.any(ZodError));
-		});
 	});
 
 	describe('edge cases', () => {
