@@ -69,9 +69,14 @@ function parseOptions(argv) {
 	return opts;
 }
 
-function resolveTemplatePath() {
-	// Template is shipped inside this package under ../templates/controller.base.ts
-	const p = path.resolve(__dirname, '../templates/controller.base.ts');
+function resolveTemplatePath(templateName = 'controller.base.ts') {
+	// First check if package user has a /templates directory in their project
+	const userTemplatePath = path.resolve(process.cwd(), `templates/${templateName}`);
+	if (fs.existsSync(userTemplatePath)) {
+		return userTemplatePath;
+	}
+
+	const p = path.resolve(__dirname, `../templates/${templateName}`);
 	if (!fs.existsSync(p)) {
 		printErr('Template file not found in package: ' + p);
 		process.exit(1);
