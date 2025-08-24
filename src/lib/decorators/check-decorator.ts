@@ -1,7 +1,7 @@
-import { type LoadEvent, type RequestEvent, type ServerLoadEvent } from '@sveltejs/kit';
+import { type RequestEvent, type ServerLoadEvent } from '@sveltejs/kit';
 
 type CheckFunction<T = unknown> = (
-	e: RequestEvent | ServerLoadEvent | LoadEvent
+	e: RequestEvent | ServerLoadEvent
 ) => true | void | T | Promise<true | void | T>;
 
 export function Check<T = unknown>(check: CheckFunction<T>): ClassDecorator & MethodDecorator {

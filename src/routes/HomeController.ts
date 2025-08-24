@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { RequestEvent } from './$types.js';
+import type { PageServerLoadEvent, RequestEvent } from './$types.js';
 import { Check } from '$lib/decorators/check-decorator.js';
 import { ZodValidate } from '$lib/decorators/validation-decorator.js';
 import { error } from '@sveltejs/kit';
@@ -28,10 +28,16 @@ const AsyncAuth = Check(async () => {
 });
 
 export default class HomeController {
+	async load(event: PageServerLoadEvent) {
+		return {
+			success: true
+		};
+	}
+
 	@AsyncAuth
 	@Auth
 	@ZodValidate(schema)
-	async invoke(event: ValidatedRequestEvent) {
+	async default(event: ValidatedRequestEvent) {
 		console.log('Validation successful:', event.locals.validated);
 
 		return {
