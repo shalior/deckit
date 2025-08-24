@@ -8,6 +8,11 @@
 //   deckit make:controller src/controllers --name EditController
 
 import fs from 'node:fs';
+
+// todo: an option to also generate +page.server.ts and +page.svelte files
+// todo: customize the controller base file
+//
+
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -23,7 +28,9 @@ function printErr(s) {
 }
 
 function usage() {
-	print(`Usage:\n  deckit make:controller <dest> [--name Name] [--force]\n\nArgs:\n  <dest>   Destination file or directory. If a directory, the file will be named <Name>.ts.\n\nOptions:\n  --name   Class name to use inside the generated file (default: EditController)\n  --force  Overwrite the destination file if it exists`);
+	print(
+		`Usage:\n  deckit make:controller <dest> [--name Name] [--force]\n\nArgs:\n  <dest>   Destination file or directory. If a directory, the file will be named <Name>.ts.\n\nOptions:\n  --name   Class name to use inside the generated file (default: EditController)\n  --force  Overwrite the destination file if it exists`
+	);
 }
 
 function parseOptions(argv) {
@@ -46,19 +53,17 @@ function parseOptions(argv) {
 			usage();
 			process.exit(0);
 		} else {
-			opts.positional = ('src/routes/' + a);
+			opts.positional = 'src/routes/' + a;
 		}
 	}
 
 	if (!opts.name) {
-
 		opts.name = opts.positional.match(/.+\/(\w+)(\.ts)?/)?.[1];
 
-		if (!opts.name){
+		if (!opts.name) {
 			printErr('Invalid name provided');
 			process.exit(1);
 		}
-
 	}
 
 	return opts;
@@ -126,7 +131,9 @@ function main() {
 	fs.mkdirSync(destDir, { recursive: true });
 
 	if (fs.existsSync(destPath) && !opts.force) {
-		printErr(`Refusing to overwrite existing file: ${path.relative(cwd, destPath)} (use --force to overwrite)`);
+		printErr(
+			`Refusing to overwrite existing file: ${path.relative(cwd, destPath)} (use --force to overwrite)`
+		);
 		process.exit(3);
 	}
 
@@ -135,7 +142,10 @@ function main() {
 
 	// Replace the class name if a custom name is provided
 	if (opts.name && opts.name !== 'EditController') {
-		content = content.replace(/export\s+default\s+class\s+\w+/, `export default class ${opts.name}`);
+		content = content.replace(
+			/export\s+default\s+class\s+\w+/,
+			`export default class ${opts.name}`
+		);
 	}
 
 	fs.writeFileSync(destPath, content, 'utf8');

@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { Check } from './check-decorator.js';
 
 describe('Auth decorator', () => {
-
 	it('should work as a method decorator', () => {
 		const authCheck = vi.fn();
 

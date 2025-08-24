@@ -85,7 +85,7 @@ describe('ValidateData decorator', () => {
 		testSchema = z.object({
 			name: z.string().min(1),
 			email: z.string().email(),
-			age: z.string().transform(val => parseInt(val))
+			age: z.string().transform((val) => parseInt(val))
 		});
 
 		// Mock console.log to avoid test output noise
@@ -115,8 +115,8 @@ describe('ValidateData decorator', () => {
 
 		it('should transform data according to schema', async () => {
 			const transformSchema = z.object({
-				count: z.string().transform(val => parseInt(val) * 2),
-				active: z.string().transform(val => val === 'true')
+				count: z.string().transform((val) => parseInt(val) * 2),
+				active: z.string().transform((val) => val === 'true')
 			});
 
 			mockFormData = new FormData();
@@ -344,9 +344,11 @@ describe('ValidateData decorator', () => {
 
 	describe('schema variations', () => {
 		it('should work with strict schema', async () => {
-			const strictSchema = z.object({
-				name: z.string()
-			}).strict(); // No additional properties allowed
+			const strictSchema = z
+				.object({
+					name: z.string()
+				})
+				.strict(); // No additional properties allowed
 
 			// Add extra property that should be stripped
 			mockFormData = new FormData();
