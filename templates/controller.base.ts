@@ -14,7 +14,7 @@ type ValidatedRequestEvent = RequestEvent & {
 	};
 };
 
-export default class EditController {
+export default class Controller {
 	@Check((event) => {
 		if (event.locals.user) {
 			return true;
