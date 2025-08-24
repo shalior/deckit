@@ -14,6 +14,12 @@
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run"
 	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/shalior/deckit.git"
+	},
+	"homepage": "https://github.com/shalior/deckit",
+	"license": "MIT",
 	"files": [
 		"dist",
 		"!dist/**/*.test.*",
