@@ -4,7 +4,7 @@ type CheckFunction<T = unknown> = (
 	e: RequestEvent | ServerLoadEvent | LoadEvent
 ) => true | void | T | Promise<true | void | T>;
 
-export function Check<T = unknown>(check?: CheckFunction<T>): ClassDecorator & MethodDecorator {
+export function Check<T = unknown>(check: CheckFunction<T>): ClassDecorator & MethodDecorator {
 	return function (target: any, propertyKey?: string | symbol, descriptor?: PropertyDescriptor) {
 		// Method decorator - applied to a specific method
 		if (propertyKey && descriptor) {
