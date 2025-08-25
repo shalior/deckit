@@ -1,10 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Check } from './check-decorator.js';
 
-describe('Auth decorator', () => {
-
-	it('should work as a method decorator', () => {
-		const authCheck = vi.fn();
+describe('Check decorator', () => {
+	it('should work as a method decorator', async () => {
+		const authCheck = vi.fn().mockImplementation(() => true);
 
 		class TestClass {
 			@Check(authCheck)
@@ -14,14 +13,16 @@ describe('Auth decorator', () => {
 		}
 
 		const instance = new TestClass();
-		const result = instance.testMethod();
+		const result = await instance.testMethod();
+
+		console.log(result);
 
 		expect(authCheck).toHaveBeenCalledOnce();
 		expect(result).toBe('method result');
 	});
 
-	it('should work as a class decorator on all public methods', () => {
-		const authCheck = vi.fn();
+	it('should work as a class decorator on all public methods', async () => {
+		const authCheck = vi.fn().mockImplementation(() => true);
 
 		@Check(authCheck)
 		class TestClass {
@@ -41,8 +42,8 @@ describe('Auth decorator', () => {
 		const instance = new TestClass();
 
 		// Test public methods are decorated
-		const result1 = instance.publicMethod1();
-		const result2 = instance.publicMethod2();
+		const result1 = await instance.publicMethod1();
+		const result2 = await instance.publicMethod2();
 
 		expect(authCheck).toHaveBeenCalledTimes(2);
 		expect(result1).toBe('method1 result');
@@ -55,22 +56,22 @@ describe('Auth decorator', () => {
 		expect(privateResult).toBe('private result');
 	});
 
-	it('should work without auth check function', () => {
+	it('should not work without check function', async () => {
 		@Check()
 		class TestClass {
 			testMethod() {
-				return 'no auth check';
+				return 'no check';
 			}
 		}
 
 		const instance = new TestClass();
-		const result = instance.testMethod();
+		const result = await instance.testMethod();
 
-		expect(result).toBe('no auth check');
+		expect(result).toBe('no check');
 	});
 
-	it('should preserve method arguments and context', () => {
-		const authCheck = vi.fn();
+	it('should preserve method arguments and context', async () => {
+		const authCheck = vi.fn().mockImplementation(() => true);
 
 		class TestClass {
 			value = 'instance value';
@@ -82,14 +83,14 @@ describe('Auth decorator', () => {
 		}
 
 		const instance = new TestClass();
-		const result = instance.testMethod('hello', 42);
+		const result = await instance.testMethod('hello', 42);
 
 		expect(authCheck).toHaveBeenCalledOnce();
 		expect(result).toBe('instance value: hello - 42');
 	});
 
 	it('should handle async methods', async () => {
-		const authCheck = vi.fn();
+		const authCheck = vi.fn().mockImplementation(() => true);
 
 		class TestClass {
 			@Check(authCheck)
@@ -107,6 +108,7 @@ describe('Auth decorator', () => {
 
 	it('should handle auth check throwing an error', () => {
 		const authCheck = vi.fn().mockImplementation(() => {
+			console.log('test')
 			throw new Error('Unauthorized');
 		});
 
@@ -119,12 +121,12 @@ describe('Auth decorator', () => {
 
 		const instance = new TestClass();
 
-		expect(() => instance.testMethod()).toThrow('Unauthorized');
+		expect(async () => await instance.testMethod()).rejects.toThrow('Unauthorized');
 		expect(authCheck).toHaveBeenCalledOnce();
 	});
 
-	it('should work with method inheritance', () => {
-		const authCheck = vi.fn();
+	it('should work with method inheritance', async () => {
+		const authCheck = vi.fn().mockImplementation(() => true);
 
 		class BaseClass {
 			@Check(authCheck)
@@ -140,14 +142,14 @@ describe('Auth decorator', () => {
 		}
 
 		const instance = new DerivedClass();
-		const result = instance.baseMethod();
+		const result = await instance.baseMethod();
 
 		expect(authCheck).toHaveBeenCalledOnce();
 		expect(result).toBe('base result');
 	});
 
-	it('should skip constructor when used as class decorator', () => {
-		const authCheck = vi.fn();
+	it('should skip constructor when used as class decorator', async () => {
+		const authCheck = vi.fn().mockImplementation(() => true);
 
 		@Check(authCheck)
 		class TestClass {
@@ -165,7 +167,7 @@ describe('Auth decorator', () => {
 		expect(authCheck).not.toHaveBeenCalled();
 
 		// But calling method should trigger it
-		instance.testMethod();
+		await instance.testMethod();
 		expect(authCheck).toHaveBeenCalledOnce();
 	});
 });

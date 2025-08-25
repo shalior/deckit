@@ -1,8 +1,6 @@
 {
 	"extends": "./.svelte-kit/tsconfig.json",
-    "exclude": [
-      "templates/controller.base.ts",
-    ],
+	"exclude": ["templates/controller.base.ts"],
 	"compilerOptions": {
 		"experimentalDecorators": true,
 		"allowJs": false,

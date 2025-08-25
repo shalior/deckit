@@ -18,28 +18,31 @@ export const formDataToObject = <T = Record<string, string | string[]>>(formData
 	return object as T;
 };
 
-export function ZodValidate(schema: ZodSchema, onFailure?: (event: RequestEvent, errors: ZodError) => void) {
-    return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
-        const originalMethod = descriptor.value;
+export function ZodValidate(
+	schema: ZodSchema,
+	onFailure?: (event: RequestEvent, errors: ZodError) => void
+) {
+	return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
+		const originalMethod = descriptor.value;
 
-        descriptor.value = async function (this: unknown, ...args: unknown[]) {
-            const event: RequestEvent = args[0] as RequestEvent;
+		descriptor.value = async function (this: unknown, ...args: unknown[]) {
+			const event: RequestEvent = args[0] as RequestEvent;
 
-            const formData = await event.request.clone().formData();
-            const data = formDataToObject(formData);
+			const formData = await event.request.clone().formData();
+			const data = formDataToObject(formData);
 
-            const result = schema.safeParse(data);
+			const result = schema.safeParse(data);
 
-            event.locals.validated = result.success ? result.data : null;
+			event.locals.validated = result.success ? result.data : null;
 
-            if (!result.success) {
-                if (onFailure) {
-                    onFailure(event, result.error);
-                }
-                return fail(422, { message: 'Validation failed.', errors: result?.error?.errors ?? [] });
-            }
+			if (!result.success) {
+				if (onFailure) {
+					onFailure(event, result.error);
+				}
+				return fail(422, { message: 'Validation failed.', errors: result?.error?.errors ?? [] });
+			}
 
-            return originalMethod.apply(this, args);
-        };
-    };
+			return originalMethod.apply(this, args);
+		};
+	};
 }
