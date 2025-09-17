@@ -1,0 +1,15 @@
+<script lang="ts">
+	import { enhance } from '$app/forms';
+	import type { PageProps } from './$types';
+
+	const { data, form }: PageProps = $props();
+	const r = form?.success;
+</script>
+
+<h1>{Name} Page</h1>
+<p>This is a new page created with deckit CLI.</p>
+
+<form use:enhance method="post">
+	<input type="hidden" name="test" value="test" />
+	<button type="submit">Submit</button>
+</form>

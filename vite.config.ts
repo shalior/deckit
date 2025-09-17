@@ -7,9 +7,9 @@ export default defineConfig({
 		target: 'es2020',
 		tsconfigRaw: {
 			compilerOptions: {
-				experimentalDecorators: true,
-			},
-		},
+				experimentalDecorators: true
+			}
+		}
 	},
 	test: {
 		expect: { requireAssertions: true },
