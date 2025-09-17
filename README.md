@@ -229,7 +229,20 @@ use `--name MyName` to set the class's name
 ```bash
 # creates a controller as src/routes/dashboard/users/UserController.ts using template.
 npx deckit make:controller dashboard/users/UserController --force
+
+# creates a complete route with controller, +page.server.ts and +page.svelte
+npx deckit make:route dashboard/users --name UserController --force
 ```
+
+### `make:route` Command
+
+The `make:route` command creates a complete SvelteKit route with three files:
+
+1. A controller file (`{Name}.ts`) - Contains the business logic with decorators
+2. A server page file (`+page.server.ts`) - Connects the controller to SvelteKit
+3. A Svelte component (`+page.svelte`) - Provides the UI for the route
+
+This command takes a directory path and creates all necessary files in that directory. It's useful for quickly scaffolding new pages in your SvelteKit application.
 
 ## API Reference
 

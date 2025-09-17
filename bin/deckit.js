@@ -3,15 +3,13 @@
 // Minimal ESM CLI to scaffold a controller file from this package's template.
 // Usage:
 //   deckit make:controller <dest> [--name Name] [--force]
+//   deckit make:route <dest> [--name Name] [--force]
 // Examples:
 //   deckit make:controller src/routes/api/user/+server.controller.ts --name UserController
 //   deckit make:controller src/controllers --name EditController
+//   deckit make:route src/routes/users --name UserController
 
 import fs from 'node:fs';
-
-// todo: an option to also generate +page.server.ts and +page.svelte files
-// todo: customize the controller base file
-//
 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,7 +27,7 @@ function printErr(s) {
 
 function usage() {
 	print(
-		`Usage:\n  deckit make:controller <dest> [--name Name] [--force]\n\nArgs:\n  <dest>   Destination file or directory. If a directory, the file will be named <Name>.ts.\n\nOptions:\n  --name   Class name to use inside the generated file (default: EditController)\n  --force  Overwrite the destination file if it exists`
+		"Usage:\n  deckit make:controller <dest> [--name Name] [--force]\n  deckit make:route <dest> [--name Name] [--force]\n\nCommands:\n  make:controller  Create a controller file\n  make:route       Create a complete route with controller, +page.server.ts and +page.svelte\n\nArgs:\n  <dest>   Destination file or directory. If a directory, the file will be named <Name>.ts.\n\nOptions:\n  --name   Class name to use inside the generated file (default: Controller)\n  --force  Overwrite the destination file if it exists"
 	);
 }
 
@@ -53,7 +51,13 @@ function parseOptions(argv) {
 			usage();
 			process.exit(0);
 		} else {
-			opts.positional = 'src/routes/' + a;
+			// For make:controller, we want to respect the full path provided
+			// Only prefix with 'src/routes/' if it's not already an absolute path or doesn't start with src/routes
+			if (!a.startsWith('src/routes/') && !path.isAbsolute(a)) {
+				opts.positional = 'src/routes/' + a;
+			} else {
+				opts.positional = a;
+			}
 		}
 	}
 
@@ -88,50 +92,8 @@ function ensureTsExt(p) {
 	return p.endsWith('.ts') ? p : p + '.ts';
 }
 
-function main() {
-	const argv = process.argv.slice(2);
-	if (argv.length === 0) {
-		usage();
-		process.exit(2);
-	}
-
-	const command = argv[0];
-	const rest = argv.slice(1);
-
-	if (command !== 'make:controller') {
-		printErr(`Unknown command: ${command}`);
-		usage();
-		process.exit(2);
-	}
-
-	const opts = parseOptions(rest);
-	const destArg = opts.positional;
-	if (!destArg) {
-		printErr('Destination path is required.');
-		usage();
-		process.exit(2);
-	}
-
+function createController(destPath, opts) {
 	const cwd = process.cwd();
-	let destPath = path.resolve(cwd, destArg);
-
-	// If destination is a directory (existing or indicated by trailing slash),
-	// construct the file path using the provided name.
-	let isDirTarget = false;
-	if (destArg.endsWith(path.sep)) {
-		isDirTarget = true;
-	} else if (fs.existsSync(destPath) && fs.statSync(destPath).isDirectory()) {
-		isDirTarget = true;
-	}
-	if (isDirTarget) {
-		destPath = path.join(destPath, ensureTsExt(opts.name));
-	} else {
-		// If a file path without extension, add .ts
-		const dir = path.dirname(destPath);
-		const base = path.basename(destPath);
-		destPath = path.join(dir, ensureTsExt(base));
-	}
-
 	const destDir = path.dirname(destPath);
 	fs.mkdirSync(destDir, { recursive: true });
 
@@ -146,7 +108,7 @@ function main() {
 	let content = fs.readFileSync(templatePath, 'utf8');
 
 	// Replace the class name if a custom name is provided
-	if (opts.name && opts.name !== 'EditController') {
+	if (opts.name && opts.name !== 'Controller') {
 		content = content.replace(
 			/export\s+default\s+class\s+\w+/,
 			`export default class ${opts.name}`
@@ -156,6 +118,130 @@ function main() {
 	fs.writeFileSync(destPath, content, 'utf8');
 
 	print(`Controller created: ${path.relative(cwd, destPath)}`);
+}
+
+function createRoute(destArg, opts) {
+	const cwd = process.cwd();
+	let destPath = path.resolve(cwd, destArg);
+
+	// Ensure destination is a directory
+	if (!fs.existsSync(destPath)) {
+		fs.mkdirSync(destPath, { recursive: true });
+	} else if (!fs.statSync(destPath).isDirectory()) {
+		printErr('Destination must be a directory for make:route command.');
+		process.exit(2);
+	}
+
+	const controllerName = opts.name.replace(/[^\w\-_]/g, '').replace(/[-_]\w/g, (match) => match[1].toUpperCase()) + 'Controller';
+
+	// Create controller file
+	const controllerPath = path.join(destPath, `${controllerName}.ts`);
+	if (fs.existsSync(controllerPath) && !opts.force) {
+		printErr(
+			`Refusing to overwrite existing file: ${path.relative(cwd, controllerPath)} (use --force to overwrite)`
+		);
+		process.exit(3);
+	}
+
+	const controllerTemplatePath = resolveTemplatePath();
+	let controllerContent = fs.readFileSync(controllerTemplatePath, 'utf8');
+
+	// Replace the class name
+	if (opts.name && opts.name !== 'Controller') {
+		controllerContent = controllerContent.replace(
+			/export\s+default\s+class\s+\w+/,
+			`export default class ${controllerName}`
+		);
+	}
+
+	fs.writeFileSync(controllerPath, controllerContent, 'utf8');
+	print(`Controller created: ${path.relative(cwd, controllerPath)}`);
+
+	// Create +page.server.ts file
+	const pageServerPath = path.join(destPath, '+page.server.ts');
+	if (fs.existsSync(pageServerPath) && !opts.force) {
+		printErr(
+			`Refusing to overwrite existing file: ${path.relative(cwd, pageServerPath)} (use --force to overwrite)`
+		);
+		process.exit(3);
+	}
+
+	const pageServerTemplatePath = resolveTemplatePath('page.server.base.ts');
+	let pageServerContent = fs.readFileSync(pageServerTemplatePath, 'utf8');
+
+	// Replace placeholders
+	pageServerContent = pageServerContent.replace(/{Name}/g, opts.name);
+
+	fs.writeFileSync(pageServerPath, pageServerContent, 'utf8');
+	print(`+page.server.ts created: ${path.relative(cwd, pageServerPath)}`);
+
+	// Create +page.svelte file
+	const pageSveltePath = path.join(destPath, '+page.svelte');
+	if (fs.existsSync(pageSveltePath) && !opts.force) {
+		printErr(
+			`Refusing to overwrite existing file: ${path.relative(cwd, pageSveltePath)} (use --force to overwrite)`
+		);
+		process.exit(3);
+	}
+
+	const pageSvelteTemplatePath = resolveTemplatePath('page.svelte.base');
+	let pageSvelteContent = fs.readFileSync(pageSvelteTemplatePath, 'utf8');
+
+	// Replace placeholders
+	pageSvelteContent = pageSvelteContent.replace(/{Name}/g, opts.name);
+
+	fs.writeFileSync(pageSveltePath, pageSvelteContent, 'utf8');
+	print(`+page.svelte created: ${path.relative(cwd, pageSveltePath)}`);
+}
+
+function main() {
+	const argv = process.argv.slice(2);
+	if (argv.length === 0) {
+		usage();
+		process.exit(2);
+	}
+
+	const command = argv[0];
+	const rest = argv.slice(1);
+
+	if (command !== 'make:controller' && command !== 'make:route') {
+		printErr(`Unknown command: ${command}`);
+		usage();
+		process.exit(2);
+	}
+
+	const opts = parseOptions(rest);
+	const destArg = opts.positional;
+	if (!destArg) {
+		printErr('Destination path is required.');
+		usage();
+		process.exit(2);
+	}
+
+	if (command === 'make:controller') {
+		let destPath = path.resolve(process.cwd(), destArg);
+
+		// If destination is a directory (existing or indicated by trailing slash),
+		// construct the file path using the provided name.
+		let isDirTarget = false;
+		if (destArg.endsWith(path.sep)) {
+			isDirTarget = true;
+		} else if (fs.existsSync(destPath) && fs.statSync(destPath).isDirectory()) {
+			isDirTarget = true;
+		}
+		if (isDirTarget) {
+			destPath = path.join(destPath, ensureTsExt(opts.name));
+		} else {
+			// If a file path without extension, add .ts
+			const dir = path.dirname(destPath);
+			const base = path.basename(destPath);
+			destPath = path.join(dir, ensureTsExt(base));
+		}
+
+		createController(destPath, opts);
+	} else if (command === 'make:route') {
+		createRoute(destArg, opts);
+	}
 }
 
 main();
